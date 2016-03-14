@@ -121,16 +121,16 @@ public class ProcessControlBlock
         return getStartTime() - getCreationTime();
     }
 
-    public String getRamPercentageUsed()
+    public Double getRamPercentageUsed()
     {
-        double num = (fullCodeSizeInDecimal() / 1024)*100;
-        return util.round(num,2) + "%";
+        double num = ((double)fullCodeSizeInDecimal() / 1024.0)*100.0;
+        return util.round(num,2);
     }
 
-    public String getDiskPercentageUsed()
+    public Double getDiskPercentageUsed()
     {
-        double num = (fullCodeSizeInDecimal() / 2048)*100;
-        return util.round(num,2) + "%";
+        double num = ((double)fullCodeSizeInDecimal() / 2048.0)*100.0;
+        return util.round(num,2);
     }
 
     public Register[] getRegisters() {

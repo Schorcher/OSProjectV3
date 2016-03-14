@@ -129,8 +129,8 @@ public class MemoryManager
 
     public void removeFromRam(Integer programStartPoint, Integer programSize)
     {
-        Util.p("");
-        print("Cleaning Ram...");
+        //Util.p("");
+        //print("Cleaning Ram...");
         memoryLock.writeLock().lock();
         try {
             for(int i=0; i<programSize; i++)
@@ -143,7 +143,7 @@ public class MemoryManager
         }finally {
             memoryLock.writeLock().unlock();
         }
-        print("Free memory = " + getAmountOfFreeMemory());
+        //print("Free memory = " + getAmountOfFreeMemory());
     }
 
 

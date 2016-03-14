@@ -26,7 +26,6 @@ public class OSDriver
     ConcurrentLinkedDeque<ProcessControlBlock> blockedQueue = new ConcurrentLinkedDeque<>();
 
     volatile boolean notDone = true;
-    //volatile Integer count = 0;
     long SYSTEM_START_TIME = System.nanoTime();
     long SYSTEM_END_TIME;
 
@@ -146,6 +145,8 @@ public class OSDriver
 
         }
 
+        printPhase1Part1Info();
+
         print("OS Finished after: " + (SYSTEM_END_TIME-SYSTEM_START_TIME) + " (ns)");
 
     }
@@ -199,6 +200,69 @@ public class OSDriver
         }
     }
 
+    private void printPhase1Part1Info()
+    {
+        ArrayList<Long> completionTimes = new ArrayList<>();
+        ArrayList<Long> waitTimes = new ArrayList<>();
+        ArrayList<Integer> IOCounts = new ArrayList<>();
+        ArrayList<Double> percentRAMUsed = new ArrayList<>();
+        ArrayList<ProcessControlBlock> cpu1Programs = new ArrayList<>();
+        ArrayList<ProcessControlBlock> cpu2Programs = new ArrayList<>();
+        ArrayList<ProcessControlBlock> cpu3Programs = new ArrayList<>();
+        ArrayList<ProcessControlBlock> cpu4Programs = new ArrayList<>();
+
+        print("Printing Phase 1 Part 1 info for programs: ");
+        for(int i=0; i<30; i++)
+        {
+            ProcessControlBlock process = terminatedQueue.poll();
+
+            switch (process.getCpuID())
+            {
+                case "CPU-1":
+                    cpu1Programs.add(process);
+                    break;
+                case "CPU-2":
+                    cpu2Programs.add(process);
+                    break;
+                case "CPU-3":
+                    cpu3Programs.add(process);
+                    break;
+                case "CPU-4":
+                    cpu4Programs.add(process);
+                    break;
+            }
+
+            print("------------ Process " + process.getProcessID() + " --------------");
+            print("CPU ID = " + process.getCpuID());
+            completionTimes.add(process.getProcessRunTime());
+            print("Completion Time: " + process.getProcessRunTime() + " (ns)");
+            waitTimes.add(process.getWaitingTime());
+            print("Waiting Time: " + process.getWaitingTime() + " (ns)");
+            IOCounts.add(process.getNumberOfIO_Operations());
+            print("IO Operations made: " + process.getNumberOfIO_Operations());
+            percentRAMUsed.add(process.getRamPercentageUsed());
+            print("Percent RAM used: " + process.getRamPercentageUsed() + "%");
+            print("---------------- END -----------------");
+        }
+        long averageCompletionTime = 0;
+        for(Long time : completionTimes) {
+            averageCompletionTime += time;
+        }
+        printYellow("Average Completion Time: " + averageCompletionTime/30 + " (ns)");
+        long averageWaitTime = 0;
+        for(Long time : waitTimes) {
+            averageWaitTime += time;
+        }
+        printYellow("Average Wait Time: " + averageWaitTime/30 + " (ns)");
+
+        printYellow("CPU-1 number of programs ---> " + cpu1Programs.size());
+        printYellow("CPU-2 number of programs ---> " + cpu2Programs.size());
+        printYellow("CPU-3 number of programs ---> " + cpu3Programs.size());
+        printYellow("CPU-4 number of programs ---> " + cpu4Programs.size());
+
+        print("End Phase 1 Part 1 Info");
+    }
+
     public Loader getLoader() {
         return loader;
     }
@@ -244,5 +308,10 @@ public class OSDriver
     public static <T> void print(T s)
     {
         System.out.println("[OS Driver]: " + s);
+    }
+
+    public <T> void printYellow(T s)
+    {
+        System.out.println(Util.ANSI_GREEN + "[OS Driver]: " + s + Util.ANSI_RESET);
     }
 }

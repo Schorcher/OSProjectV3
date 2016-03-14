@@ -36,6 +36,7 @@ public class CPU extends Thread implements Runnable
     ProcessControlBlock processInfo;
 
     Integer programCounter = 0;  // Current execution point of the program
+    Integer IOCount = 0;
 
     Register register0 = new Register(0);      // #0  (0000) is the accumulator
     Register register1 = new Register(1,0);      // #1  (0001) is the zero register (contains the value zero)
@@ -137,7 +138,7 @@ public class CPU extends Thread implements Runnable
     private void compute()
     {
         try {
-            Util.p("\n[CPU]: Attempting execution of program " + processInfo.getProcessID() + "...");
+            //printYellow("Attempting execution of program " + processInfo.getProcessID() + "...");
             PROCESS_START_TIME = System.nanoTime();
             processInfo.setStartTime(PROCESS_START_TIME);
             processInfo.setStatus(ProcessControlBlock.STATUS_RUNNING);
@@ -226,6 +227,7 @@ public class CPU extends Thread implements Runnable
                 executeOP(decodedInstruction.get(OP_CODE));
                 break;
             case 3:
+                processInfo.incrementIOOpsCount();
                 executeOP(decodedInstruction.get(OP_CODE));
                 break;
             default:
@@ -639,7 +641,8 @@ public class CPU extends Thread implements Runnable
 
     private void updatePCB()
     {
-
+        storeRegistersToPCB();
+        processInfo.setProgramCounter(programCounter);
     }
 
     private void clearCPU()
@@ -664,7 +667,6 @@ public class CPU extends Thread implements Runnable
         register14.reset();
         register15.reset();
 
-
     }
 
     private void storeRegistersToPCB()
@@ -685,6 +687,10 @@ public class CPU extends Thread implements Runnable
         processInfo.getRegisters()[13] = register13.clone();
         processInfo.getRegisters()[14] = register14.clone();
         processInfo.getRegisters()[15] = register15.clone();
+
+        processInfo.setProgramCounter(programCounter);
+
+
     }
 
     private void terminateProcess()
@@ -695,11 +701,11 @@ public class CPU extends Thread implements Runnable
 
         //printOutputBuffer();
 
-        print("Process " + processInfo.getProcessID() + " finished...");
+        printYellow("Process " + processInfo.getProcessID() + " finished...");
         long PROCESS_END_TIME = System.nanoTime();
         processInfo.setComlpetionTime(PROCESS_END_TIME);
 
-        printYellow("Process ended after " + (PROCESS_END_TIME-PROCESS_START_TIME) + " (ns)");
+        //printYellow("Process ended after " + (PROCESS_END_TIME-PROCESS_START_TIME) + " (ns)");
 
         processInfo.setStatus(ProcessControlBlock.STATUS_TERMINATED);
         osDriver.getTerminatedQueue().add(processInfo);

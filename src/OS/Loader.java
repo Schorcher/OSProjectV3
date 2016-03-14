@@ -62,6 +62,7 @@ public class Loader
 
     public void parseFile(File file)
     {
+        // Creates the reader and other local variables
         BufferedReader bufferedReader;
         print("Starting parse File\n");
         int lineCount = 0;
@@ -71,17 +72,21 @@ public class Loader
             bufferedReader = Files.newBufferedReader(Paths.get(file.getPath()));
             String nextLine;
 
+            // Reads the next line while its not null
             while ( (nextLine = bufferedReader.readLine()) != null )
             {
-
+                // Required redundant string
                 String line = nextLine;
 
+                // Checks if line is empty, if so moves on to next line
                 if(line.isEmpty())
                 {
                     //print("line empty");
                 }
+                // Checks if line contains a comment / control info
                 else if(line.contains("//"))
                 {
+                    // Removes the spaces and splits the line into an array
                     String[] splitLine = line.split(" ");
 
                     // Get special control "info" from line and load to PCB
@@ -164,27 +169,32 @@ public class Loader
         // Sets the priority for the process to be executed
         processInfo.setPriority(priority);
 
+        // Sets the creation time for the process
         processInfo.setCreationTime(System.nanoTime());
 
+        // Adds the process to the new process queue
         osDriver.getNewQueue().add(processInfo);
 
     }
 
     void sendDataPropertiesToPCB(String pID, String inputBufferSize, String outputBufferSize, String tempBufferSize)
     {
-
+        // Sets the input buffer size for the process
         osDriver.getNewQueue().getLast().setInputBufferCount(inputBufferSize);
 
+        // Sets the output buffer size for the process
         osDriver.getNewQueue().getLast().setOutputBufferCount(outputBufferSize);
 
+        // Sets the temp buffer size for the process
         osDriver.getNewQueue().getLast().setTempBufferCount(tempBufferSize);
 
     }
 
+    // Sends the program to RAM ( memory )
     public void loadProgramToRam(int diskStartIndex, int jobSize, int memStartIndex)
     {
-        Util.p("");
-        print("Loading job...");
+        //Util.p("");
+        //print("Loading job...");
         //print("From Disk at location "+ diskStartIndex);
         //print("Of size " + jobSize + " lines");
         //print("To Memory at location " + memStartIndex);
@@ -196,7 +206,7 @@ public class Loader
             memStartIndex++;
             diskStartIndex++;
         }
-        print("Done...\n");
+        //print("Done...\n");
     }
 
     /**
