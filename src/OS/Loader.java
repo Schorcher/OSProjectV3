@@ -8,10 +8,30 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 /**
- * Created by davidmcfall on 3/9/16.
+ * Created by David McFall on 2/10/16.
  */
 public class Loader
 {
+    /**
+     * The Loader
+     * The loader module opens (once at the start) the ‘program-file’ and performs the loading process. Programs are
+     * loaded into disk according to the format of the batched user programs in the program-file. Ancillary programs
+     * would be needed to process (strip off) the special control “cards” – which start with ‘//’.
+     * For example,
+     * the ‘// Job 1 17 2’ control card of Job1 is processed by discarding the ‘//’, noting that the ‘1’ is the ID
+     * of the first job, noting that ‘17’ (or 23 in decimal) is the number of words that constitute
+     * the instructions of Job 1, and ‘2’ is the priority-number (to be used for scheduling) of Job 1. All the
+     * numbers are in hex. Following the Job-control card are the actual instructions – one instruction per line in
+     * the program-file, which must also be extracted and stored in disk.
+     *
+     * Similar logic for processing the data-section, following the instructions and proceeded by ‘// Data ...’
+     * control cards, also applies. In the case of Job 1, for example, ‘// Data 14 C C’, means Job 1’s
+     * input buffer is 20 (14 in hex), its output buffer size is 12 (C in hex) words, and the size of its
+     * temporary buffer is 12 (C in hex) words. (In this simulation, the input buffer comes pre-loaded with the
+     * input data, for simplicity.) All the data values on the control cards are attributes of each program,
+     * must be extracted and stored in the Process Control Block (PCB) (see below).
+     */
+
 
     OSDriver osDriver;
     String usrDir = System.getProperty("user.home");
@@ -20,6 +40,20 @@ public class Loader
     {
         this.osDriver=osDriver;
     }
+
+    /**
+     *
+     * The basic outline of the loader’s logic looks like the following:
+     *
+     *  while (not end-of-program-data-file) do
+     *  {
+     *      Read-File();
+     *      Extract program attributes into the PCB
+     *      Insert hex-code or instructions into the simulated RAM
+     *  }
+     *
+     *
+     */
 
     public void loadFile()
     {

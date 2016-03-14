@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * Created by davidmcfall on 3/9/16.
+ * Created by David McFall on 2/15/16.
  */
 public class MemoryManager
 {

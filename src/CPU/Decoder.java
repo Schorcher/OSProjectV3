@@ -5,7 +5,7 @@ import Misc.Util;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Created by davidmcfall on 3/9/16.
+ * Created by David McFall on 3/3/16.
  */
 public class Decoder
 {

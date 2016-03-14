@@ -5,7 +5,7 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 
 /**
- * Created by davidmcfall on 3/9/16.
+ * Created by David McFall on 2/25/2016.
  */
 public class Util
 {

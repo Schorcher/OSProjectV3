@@ -1,7 +1,7 @@
 package CPU;
 
 /**
- * Created by davidmcfall on 3/9/16.
+ * Created by David McFall on 3/4/2016.
  */
 public class Register
 {

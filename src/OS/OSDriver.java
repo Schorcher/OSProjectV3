@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
- * Created by davidmcfall on 3/9/16.
+ * Created by David McFall on 2/10/16.
  */
 public class OSDriver
 {
@@ -29,6 +29,21 @@ public class OSDriver
     //volatile Integer count = 0;
     long SYSTEM_START_TIME = System.nanoTime();
     long SYSTEM_END_TIME;
+
+
+    /**
+     * Driver
+     * {
+     *      loader();
+     *      loop
+     *      {
+     *          longScheduler();
+     *          dispatcher();
+     *          CPU();
+     *          waitforinterrupt();
+     *      }
+     * }
+     */
 
     public OSDriver()
     {
@@ -64,15 +79,21 @@ public class OSDriver
 
     }
 
-    public void promptUser()
-    {
-        //InputStreamReader input = new InputStreamReader(System.in);
-
-        //print();
-
-        //String cpuCount
-    }
-
+    /**
+     * The Scheduler
+     *
+     * The Scheduler loads programs from the disk into RAM according to the given scheduling policy. The scheduler
+     * must note in the PCB, which physical addresses in RAM each program/job begins, and ends. This ‘start’ address
+     * must be stored in the base-register (or program-counter) of the job). The Scheduler module must also use the
+     * Input/Output buffer size information (extracted from the control cards) for allocating spaces in RAM for the
+     * input and output data. It may be instructive to store the start addresses of the input-buffer and output-buffer
+     * spaces allocated in RAM as well. (Note that a job’s program-counter, which is a component of the PCB, is
+     * different from the virtual CPU’s program-counter – see below). The Scheduler module either loads one program
+     * or multiple programs at a time (in a multiprogramming system). Thus, the Scheduler works closely with the
+     * Memory manager and the Effective-Address method to load jobs into RAM.
+     *
+     *
+     */
 
     public void scheduler()
     {
@@ -114,16 +135,9 @@ public class OSDriver
 
     }
 
-    public void updateQueuesAndMemory()
-    {
-
-    }
-
     public void shutdownOS()
     {
         SYSTEM_END_TIME = System.nanoTime();
-
-        print("OS Finished after: " + (SYSTEM_END_TIME-SYSTEM_START_TIME) + " (ns)");
 
         try {
             Thread.sleep(500);
@@ -132,6 +146,7 @@ public class OSDriver
 
         }
 
+        print("OS Finished after: " + (SYSTEM_END_TIME-SYSTEM_START_TIME) + " (ns)");
 
     }
 

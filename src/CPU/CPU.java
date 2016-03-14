@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Created by davidmcfall on 3/9/16.
+ * Created by David McFall on 2/10/16.
  */
 public class CPU extends Thread implements Runnable
 {
@@ -63,6 +63,16 @@ public class CPU extends Thread implements Runnable
         this.osDriver = osDriver;
     }
 
+
+    /**
+     * Dispatcher
+     * The Dispatcher method assigns a process to the CPU. It is also responsible for context switching of jobs when
+     * necessary (more on this later!). For now, the dispatcher will extract parameter data from the PCB and
+     * accordingly set the CPU’s PC, and other registers, before the OS calls the CPU to execute the job.
+     *
+     *
+     */
+
     @Override
     public void run()
     {
@@ -99,6 +109,30 @@ public class CPU extends Thread implements Runnable
 
         }
     }
+
+    /**
+     * ComputeOnly
+     *
+     * This method implements a simple instruction cycle algorithm with dynamic relocation of the program
+     * (relative to the base-register).
+     *
+     *
+     * loop
+     *      ir : = Fetch(memory[map(PC)]);      // fetch instruction at RAM address – mapped PC
+     *
+     *      Decode(ir, oc, addrptr);            // part of decoding of the instruction in instr reg (ir),
+     *                                          // returning the opcode (oc) and a pointer to a list of significant
+     *                                          // addresses in ‘ir’ – saved elsewhere
+     *
+     *      PC := PC + 1;                       // ready for next instruction, increase PC by 1 (word)
+     *      Execute(oc) {
+     *      case 0:                             // corresponding code using addrptr of operands
+     *      case 1:                             // corresponding code or send interrupt
+     *      ...
+     *      }
+     * end; // loop
+     *
+     */
 
     private void compute()
     {
@@ -140,15 +174,43 @@ public class CPU extends Thread implements Runnable
         }
     }
 
+    /**
+     * With support from the Memory module/method, this method fetches instructions or data from RAM depending on the
+     * content of the CPU’s program counter (PC). On instruction fetch, the PC value should point to the next
+     * instruction to be fetched. The Fetch method therefore calls the Effective-Address method to translate the
+     * logical address to the corresponding absolute address, using the base-register value and a ‘calculated’
+     * offset/address displacement. The Fetch, therefore, also supports the Decode method of the CPU.
+     *
+     *
+     */
+
     private String fetch()
     {
         return cache.get(programCounter);
     }
 
+    /**
+     * The Decode method is a part of the CPU. Its function is to completely decode a fetched instruction – using the
+     * different kinds of address translation schemes of the CPU architecture. (See the supplementary information in
+     * the file: Instruction Format.) On decoding, the needed parameters must be loaded into the appropriate registers
+     * or data structures pertaining to the program/job and readied for the Execute method to function properly.
+     *
+     *
+     */
+
     private void decode(String str)
     {
         decodedInstruction = decoder.decode(str);
     }
+
+    /**
+     * This method is essentially a switch-loop of the CPU. One of its key functions is to increment the PC value on
+     * ‘successful’ execution of the current instruction. Note also that if an I/O operation is done via an interrupt,
+     * or due to any other preemptive instruction, the job is suspended until the DMA-Channel method completes the
+     * read/writeToMemory operation, or the interrupt is serviced.
+     *
+     *
+     */
 
     private void execute() throws Exception
     {
@@ -170,6 +232,12 @@ public class CPU extends Thread implements Runnable
                 throw new Exception("Error in execute method");
         }
     }
+
+    /*************************************************************************************************************
+     *
+     *                                              Instruction Set
+     *
+     *************************************************************************************************************/
 
     private void executeOP(String opCode)
     {
