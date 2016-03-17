@@ -39,7 +39,7 @@ public class CPU extends Thread implements Runnable
     Integer IOCount = 0;
 
     Register register0 = new Register(0);      // #0  (0000) is the accumulator
-    Register register1 = new Register(1,0);      // #1  (0001) is the zero register (contains the value zero)
+    Register register1 = new Register(1,0);    // #1  (0001) is the zero register (contains the value zero)
     Register register2 = new Register(2);      // #2  (0010) General Purpose Register - 1
     Register register3 = new Register(3);      // #3  (0011) General Purpose Register - 2
     Register register4 = new Register(4);      // #4  (0100) General Purpose Register - 3
