@@ -38,7 +38,7 @@ public class ProcessControlBlock
      */
 
 
-    public static String STATUS_NEW="NEW",STATUS_WAITING="WAITING",STATUS_TERMINATED="TERMINATED",
+    final public static String STATUS_NEW="NEW",STATUS_WAITING="WAITING",STATUS_TERMINATED="TERMINATED",
             STATUS_BLOCKED="BLOCKED", STATUS_RUNNING="RUNNING", STATUS_READY="READY";
 
     Register[] registers = new Register[16];
@@ -46,6 +46,8 @@ public class ProcessControlBlock
 
     String processID, priority, status, statusInfo, cpuID;
     String instructionCount, inputBufferCount, outputBufferCount, tempBufferCount;
+
+    Integer pageTableBaseRegister=0, pageTableLimitRegister=0;
 
     Integer programCounter, diskPointer, memoryPointer;
 

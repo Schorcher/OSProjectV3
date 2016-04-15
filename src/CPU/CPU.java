@@ -697,9 +697,13 @@ public class CPU extends Thread implements Runnable
     {
         sendOutputBufferToDisk();
 
+        //printRegisters();
+
         storeRegistersToPCB();
 
         //printOutputBuffer();
+
+
 
         printYellow("Process " + processInfo.getProcessID() + " finished...");
         long PROCESS_END_TIME = System.nanoTime();

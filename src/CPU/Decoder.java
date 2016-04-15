@@ -37,10 +37,10 @@ public class Decoder
         //print("Decoded hex instruction to binary \"" + binaryInstruction + "\" ");
 
         String formatCode = getFormatFromInstruction(binaryInstruction);
-        //print("Format = " + formatCode + " \t\t\t\t\t\t\t\t\t---> " + Util.binaryToDecimal(formatCode));
+        //print("Format = " + formatCode + " \t\t\t\t\t\t\t\t\t---> " + util.parseBinaryToDecimal(formatCode));
 
         String opCode = getOPCodeFromInstruction(binaryInstruction);
-        //print("OPCode = " + opCode + " \t\t\t\t\t\t\t\t---> " + Util.binaryToDecimal(opCode));
+        //print("OPCode = " + opCode + " \t\t\t\t\t\t\t\t---> " + util.parseBinaryToDecimal(opCode));
 
         map.put(FORMAT_CODE,formatCode);
         map.put(OP_CODE,opCode);
@@ -49,13 +49,13 @@ public class Decoder
         {
             case 0: //Arithmetic Instruction
                 sREG1 = binaryInstruction.substring(8,12);
-                //print("Source Register 1 = " + sREG1 + " \t\t\t\t\t---> " + Util.binaryToDecimal(sREG1));
+                //print("Source Register 1 = " + sREG1 + " \t\t\t\t\t---> " + util.parseBinaryToDecimal(sREG1));
                 sREG2 = binaryInstruction.substring(12,16);
-                //print("Source Register 2 = " + sREG2 + " \t\t\t\t\t---> " + Util.binaryToDecimal(sREG2));
+                //print("Source Register 2 = " + sREG2 + " \t\t\t\t\t---> " + util.parseBinaryToDecimal(sREG2));
                 dREG = binaryInstruction.substring(16,20);
-                //print("Destination Register = " + dREG + " \t\t\t\t\t---> " + Util.binaryToDecimal(dREG));
+                //print("Destination Register = " + dREG + " \t\t\t\t\t---> " + util.parseBinaryToDecimal(dREG));
                 unused = binaryInstruction.substring(20,32);
-                //print("Unused space = " + unused + " \t\t\t\t\t---> " + Util.binaryToDecimal(unused));
+                //print("Unused space = " + unused + " \t\t\t\t\t---> " + util.parseBinaryToDecimal(unused));
 
                 map.put(S_REG_1,sREG1);
                 map.put(S_REG_2,sREG2);
@@ -65,12 +65,12 @@ public class Decoder
 
             case 1: //Conditional Branch and Immediate format
                 bREG = binaryInstruction.substring(8,12);
-                //print("Base Register = " + bREG + " \t\t\t\t\t\t---> " + Util.binaryToDecimal(bREG));
+                //print("Base Register = " + bREG + " \t\t\t\t\t\t---> " + util.parseBinaryToDecimal(bREG));
                 dREG = binaryInstruction.substring(12,16);
-                //print("Destination Register = " + dREG + " \t\t\t\t\t---> " + Util.binaryToDecimal(dREG));
+                //print("Destination Register = " + dREG + " \t\t\t\t\t---> " + util.parseBinaryToDecimal(dREG));
                 address = binaryInstruction.substring(16,32);
                 //print("Address = " + address);
-                //print("Address = " + address + " \t\t\t\t\t---> " + Util.binaryWordAddressToByteAddress(address));
+                //print("Address = " + address + " \t\t\t\t\t---> " + util.binaryWordAddressToByteAddress(address));
 
                 map.put(B_REG,bREG);
                 map.put(D_REG,dREG);
@@ -80,18 +80,18 @@ public class Decoder
             case 2: //Unconditional Jump format
                 address = binaryInstruction.substring(8,32);
                 //print("Address = " + address);
-                //print("Address = " + address + " \t\t\t---> " + Util.binaryWordAddressToByteAddress(address));
+                //print("Address = " + address + " \t\t\t---> " + util.binaryWordAddressToByteAddress(address));
 
                 map.put(ADDRESS,address);
                 break;
 
             case 3: // Input and Output format
                 reg1 = binaryInstruction.substring(8,12);
-                //print("Register 1 = " + reg1 + " \t\t\t\t\t\t\t---> " + Util.binaryToDecimal(reg1));
+                //print("Register 1 = " + reg1 + " \t\t\t\t\t\t\t---> " + util.parseBinaryToDecimal(reg1));
                 reg2 = binaryInstruction.substring(12,16);
-                //print("Register 2 = " + reg2 + " \t\t\t\t\t\t\t---> " + Util.binaryToDecimal(reg2));
+                //print("Register 2 = " + reg2 + " \t\t\t\t\t\t\t---> " + util.parseBinaryToDecimal(reg2));
                 address = binaryInstruction.substring(16,32);
-                //print("Address = " + address + " \t\t\t\t\t---> " + Util.binaryWordAddressToByteAddress(address));
+                //print("Address = " + address + " \t\t\t\t\t---> " + util.binaryWordAddressToByteAddress(address));
 
                 map.put(REG_1,reg1);
                 map.put(REG_2,reg2);
@@ -99,7 +99,7 @@ public class Decoder
                 break;
 
             default:
-                print("FAILED: Testing format integer " + Integer.parseUnsignedInt(formatCode,2));
+                //print("FAILED: Testing format integer " + Integer.parseUnsignedInt(formatCode,2));
                 break;
         }
 

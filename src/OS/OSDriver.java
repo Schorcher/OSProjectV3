@@ -56,14 +56,12 @@ public class OSDriver
     {
 
         loader.loadFile();
+
         scheduler();
         scheduler();
         scheduler();
         scheduler();
-        scheduler();
-        scheduler();
-        scheduler();
-        scheduler();
+
         cpu1.start();
         cpu2.start();
         cpu3.start();
@@ -73,6 +71,7 @@ public class OSDriver
         {
             scheduler();
         }
+
 
         shutdownOS();
 
@@ -134,6 +133,21 @@ public class OSDriver
 
     }
 
+    private void orderBy_SJF()
+    {
+
+    }
+
+    private void orderBy_Priority()
+    {
+
+    }
+
+    private void orderBy_FIFO()
+    {
+
+    }
+
     public void shutdownOS()
     {
         SYSTEM_END_TIME = System.nanoTime();
@@ -145,7 +159,11 @@ public class OSDriver
 
         }
 
-        printPhase1Part1Info();
+        //printProcessOutputs();
+
+        //Util.p("");
+
+        //printPhase1Part1Info();
 
         print("OS Finished after: " + (SYSTEM_END_TIME-SYSTEM_START_TIME) + " (ns)");
 
