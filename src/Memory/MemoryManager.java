@@ -5,6 +5,7 @@ import OS.OSDriver;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -39,10 +40,46 @@ public class MemoryManager
      *                          Page Table Methods
      *
      ***************************************************************************************/
+    private Page[] pageList = new Page[Page.NUMBER_OF_PAGES];       // 512 Pages
+    private Page[] frameList = new Page[Frame.NUMBER_OF_FRAMES];  // 256 Frames
+
+    private ConcurrentLinkedDeque<Page> freeFrameList = new ConcurrentLinkedDeque<>();
+
+
 
     public void setupPageTable()
     {
+        setupPages();
+        setupFrames();
+    }
 
+    private void setupPages()
+    {
+        Integer count = 0, pageCount = 0;
+        for(Page page : pageList)
+        {
+            page = new Page(pageCount);
+            pageCount++;
+            page.setLineNumber(0,count);
+            count++;
+            page.setLineNumber(1,count);
+            count++;
+            page.setLineNumber(2,count);
+            count++;
+            page.setLineNumber(3,count);
+            count++;
+        }
+    }
+
+    private void setupFrames()
+    {
+        Integer frameCount = 0;
+        for(Page frame : frameList)
+        {
+            frame = new Page(frameCount);
+            frameCount++;
+            freeFrameList.add(frame);
+        }
     }
 
     private void translatePageToFrame()
