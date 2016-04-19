@@ -1,7 +1,10 @@
 package OS;
 
 import CPU.Register;
+import Memory.Page;
 import Misc.Util;
+
+import java.util.ArrayList;
 
 /**
  * Created by David McFall on 2/24/16.
@@ -55,6 +58,7 @@ public class ProcessControlBlock
 
     long startTime, comlpetionTime, creationTime;
 
+    ArrayList<Page> pageList = new ArrayList<>();
 
     public ProcessControlBlock()
     {
@@ -265,5 +269,10 @@ public class ProcessControlBlock
 
     public Integer getNumberOfIO_Operations() {
         return numberOfIO_Operations;
+    }
+
+    public ArrayList<Page> getPageList()
+    {
+        return pageList;
     }
 }

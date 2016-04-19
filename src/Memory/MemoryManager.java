@@ -34,6 +34,28 @@ public class MemoryManager
         this.osDriver = osDriver;
     }
 
+    /***************************************************************************************
+     *
+     *                          Page Table Methods
+     *
+     ***************************************************************************************/
+
+    public void setupPageTable()
+    {
+
+    }
+
+    private void translatePageToFrame()
+    {
+
+    }
+
+    private boolean pageFault(Page page)
+    {
+        return true;
+    }
+
+
 
 
 
