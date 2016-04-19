@@ -41,7 +41,7 @@ public class MemoryManager
      *
      ***************************************************************************************/
     private Page[] pageList = new Page[Page.NUMBER_OF_PAGES];       // 512 Pages
-    private Page[] frameList = new Page[Frame.NUMBER_OF_FRAMES];  // 256 Frames
+    private Page[] frameList = new Page[Frame.NUMBER_OF_FRAMES];    // 256 Frames
 
     private ConcurrentLinkedDeque<Page> freeFrameList = new ConcurrentLinkedDeque<>();
 
