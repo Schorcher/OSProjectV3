@@ -93,7 +93,7 @@ public class OSDriver
      *
      */
 
-    //TODO: Change this to use pages in memory
+    //TODO: Change the scheduler to use pages in memory
     public void scheduler()
     {
         if(!newQueue.isEmpty())
