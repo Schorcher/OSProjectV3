@@ -45,8 +45,6 @@ public class MemoryManager
 
     private ConcurrentLinkedDeque<Page> freeFrameList = new ConcurrentLinkedDeque<>();
 
-
-
     public void setupPageTable()
     {
         setupPages();
@@ -82,24 +80,33 @@ public class MemoryManager
         }
     }
 
-
-    //TODO: Fix this later
-    private Page translatePageToFrame(Integer pageNumber)
-    {
-        Integer frameID;
-        Page freeFrame = freeFrameList.poll();
-
-        // Sets the
-
-        return freeFrame;
-    }
-
+    //TODO: Finish page faults
     private boolean pageFault(Page page)
     {
         return true;
     }
 
+    //TODO: Check that this works properly
+    private Page writePageToMemory(Integer pageNumber)
+    {
+        Integer memorySpace = findBestFitSpaceInMemory(4);
 
+        Page newFrame = freeFrameList.pollFirst();
+
+        newFrame.setLineNumber(0,memorySpace);
+        newFrame.setLineNumber(1,memorySpace+1);
+        newFrame.setLineNumber(2,memorySpace+2);
+        newFrame.setLineNumber(3,memorySpace+3);
+
+        writeToMemory(newFrame.getLineNumber(0),getFromDisk(pageList[pageNumber].getLineNumber(0)));
+        writeToMemory(newFrame.getLineNumber(1),getFromDisk(pageList[pageNumber].getLineNumber(0)));
+        writeToMemory(newFrame.getLineNumber(2),getFromDisk(pageList[pageNumber].getLineNumber(0)));
+        writeToMemory(newFrame.getLineNumber(3),getFromDisk(pageList[pageNumber].getLineNumber(0)));
+
+        return newFrame;
+    }
+
+    //TODO: Add any other necessary methods
 
 
 

@@ -747,6 +747,7 @@ public class CPU extends Thread implements Runnable
         }
     }
 
+    //TODO: Change this based on the "dirty bit" inside of a frame
     private void saveProcessCurrentState()
     {
         storeRegistersToPCB();
@@ -791,7 +792,6 @@ public class CPU extends Thread implements Runnable
         print("----------------------------- End ------------------------------------");
     }
 
-
     public List<String> getCache() {
         return cache;
     }
@@ -814,8 +814,6 @@ public class CPU extends Thread implements Runnable
         this.programCounter = programCounter;
     }
 
-
-
     public ProcessControlBlock getProcessInfo() {
         return processInfo;
     }
@@ -834,7 +832,7 @@ public class CPU extends Thread implements Runnable
 
 
     /**
-     *  Static short print method
+     *  Static short print methods
      *
      * @param s
      * @param <T>
@@ -843,22 +841,10 @@ public class CPU extends Thread implements Runnable
     {
         System.out.println("[" + this.getName() + "]: " + s);
     }
-    /**
-     *  Static short error print method
-     *
-     * @param s
-     * @param <T>
-     */
     public <T> void printError(T s)
     {
         System.out.println(Util.ANSI_RED + "[" + this.getName() + "]: " + s + Util.ANSI_RESET);
     }
-    /**
-     *  Static short error print method
-     *
-     * @param s
-     * @param <T>
-     */
     public <T> void printYellow(T s)
     {
         System.out.println(Util.ANSI_GREEN + "[" + this.getName() + "]: " + s + Util.ANSI_RESET);
