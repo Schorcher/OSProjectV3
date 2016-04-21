@@ -82,9 +82,16 @@ public class MemoryManager
         }
     }
 
-    private void translatePageToFrame()
-    {
 
+    //TODO: Fix this later
+    private Page translatePageToFrame(Integer pageNumber)
+    {
+        Integer frameID;
+        Page freeFrame = freeFrameList.poll();
+
+        // Sets the
+
+        return freeFrame;
     }
 
     private boolean pageFault(Page page)

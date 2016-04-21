@@ -17,6 +17,8 @@ public class Page
 
     private Integer[] lineNumbers = new Integer[PAGE_SIZE];
 
+    private Boolean isAvailable = true;
+
 
     public Page()
     {
@@ -81,4 +83,27 @@ public class Page
         return ID;
     }
 
+    public Boolean getAvailable() {
+        return isAvailable;
+    }
+
+    public void setAvailable(Boolean available) {
+        isAvailable = available;
+    }
+
+    public Integer[] getLineNumbers() {
+        return lineNumbers;
+    }
+
+    public void setLineNumbers(Integer[] lineNumbers) {
+        this.lineNumbers = lineNumbers;
+    }
+
+    public String[] getLines() {
+        return lines;
+    }
+
+    public void setLines(String[] lines) {
+        this.lines = lines;
+    }
 }

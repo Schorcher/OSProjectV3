@@ -689,8 +689,6 @@ public class CPU extends Thread implements Runnable
         processInfo.getRegisters()[15] = register15.clone();
 
         processInfo.setProgramCounter(programCounter);
-
-
     }
 
     private void terminateProcess()
@@ -735,6 +733,28 @@ public class CPU extends Thread implements Runnable
             //print("Storing line: \"" + cache.get(processInfo.getRelativeOutputBufferStartPoint()+i) + "\" back to " +
             //        "Disk.");
         }
+    }
+
+    private void sendTempBufferToDisk()
+    {
+        int lineLocation = processInfo.getDiskPointer() + processInfo.getRelativeTempBufferStartPoint();
+        for(int i=0; i<util.parseHexToDecimal(processInfo.getTempBufferCount()); i++)
+        {
+            osDriver.getMemoryManager().storeInDisk(cache.get(processInfo.getRelativeTempBufferStartPoint()+i),
+                    lineLocation+i);
+            //print("Storing line: \"" + cache.get(processInfo.getRelativeOutputBufferStartPoint()+i) + "\" back to " +
+            //        "Disk.");
+        }
+    }
+
+    private void saveProcessCurrentState()
+    {
+        storeRegistersToPCB();
+
+        sendOutputBufferToDisk();
+
+        sendTempBufferToDisk();
+
     }
 
     private void printRegisters()
