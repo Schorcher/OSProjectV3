@@ -1,5 +1,6 @@
 package CPU;
 
+import Memory.Page;
 import Misc.Util;
 import OS.OSDriver;
 import OS.ProcessControlBlock;
@@ -33,6 +34,12 @@ public class CPU extends Thread implements Runnable
     long PROCESS_START_TIME = 0;
 
     List<String> cache = new ArrayList<>();
+
+    List<String> instructionCache = new ArrayList<>();
+    List<String> inputCache = new ArrayList<>();
+    List<String> outputCache = new ArrayList<>();
+    List<String> tempCache = new ArrayList<>();
+
     ProcessControlBlock processInfo;
 
     Integer programCounter = 0;  // Current execution point of the program
@@ -77,40 +84,90 @@ public class CPU extends Thread implements Runnable
     @Override
     public void run()
     {
-        while (osDriver.isNotDone() && !osDriver.getReadyQueue().isEmpty())
+        if(!osDriver.isUsePageSystem())
         {
-            try{
-
-                this.processInfo = osDriver.getReadyQueue().pollFirst();
-
-                int linePointer = processInfo.getMemoryPointer();
-
-                programCounter = processInfo.getProgramCounter();
-                cache.clear();
-                setDoCompute(true);
-
-                for (int i=0;  i < processInfo.fullCodeSizeInDecimal(); i++)
-                {
-                    cache.add(osDriver.getMemoryManager().getMemoryLine(linePointer));
-                    linePointer++;
+            while (osDriver.isNotDone() && !osDriver.getReadyQueue().isEmpty()) {
+                try{
+                    this.processInfo = osDriver.getReadyQueue().pollFirst();
+                    int linePointer = processInfo.getMemoryPointer();
+                    programCounter = processInfo.getProgramCounter();
+                    cache.clear();
+                    setDoCompute(true);
+                    for (int i=0;  i < processInfo.fullCodeSizeInDecimal(); i++)
+                    {
+                        cache.add(osDriver.getMemoryManager().getMemoryLine(linePointer));
+                        linePointer++;
+                    }
+                    if(processInfo != null)
+                    {
+                        processInfo.setCpuID(this.getName());
+                    }
+                    osDriver.setNumOfPrograms(osDriver.getNumOfPrograms() + 1);
                 }
-
-                if(processInfo != null)
-                {
-                    processInfo.setCpuID(this.getName());
+                catch (Exception ex) {
                 }
-
-                osDriver.setNumOfPrograms(osDriver.getNumOfPrograms() + 1);
-
+                compute();
             }
-            catch (Exception ex)
-            {
-
-            }
-
-            compute();
-
         }
+        else
+        {
+            while (osDriver.isNotDone() && !osDriver.getReadyQueue().isEmpty())
+            {
+                try{
+                    print("Starting process");
+                    this.processInfo = osDriver.getReadyQueue().pollFirst();
+                    programCounter = processInfo.getProgramCounter();
+
+                    instructionCache.clear();
+                    inputCache.clear();
+                    outputCache.clear();
+                    tempCache.clear();
+
+                    setDoCompute(true);
+
+                    for(Page page : processInfo.getFrameList())
+                    {
+                        for(int i=0; i<4; i++)
+                        {
+                            Integer currentLine = (page.getID()*4) + i;
+
+                            switch (processInfo.checkNumberArea(currentLine))
+                            {
+                                case "INSTRUCTION":
+                                    instructionCache.add(osDriver.getMemoryManager().getMemoryLine(page.getFrameLineNumber(i)));
+                                    break;
+                                case "INPUT":
+                                    inputCache.add(osDriver.getMemoryManager().getMemoryLine(page.getFrameLineNumber(i)));
+                                    break;
+                                case "OUTPUT":
+                                    outputCache.add(osDriver.getMemoryManager().getMemoryLine(page.getFrameLineNumber(i)));
+                                    break;
+                                case "TEMP":
+                                    tempCache.add(osDriver.getMemoryManager().getMemoryLine(page.getFrameLineNumber(i)));
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                    }
+
+
+                    if(processInfo != null)
+                    {
+                        processInfo.setCpuID(this.getName());
+                    }
+                    osDriver.setNumOfPrograms(osDriver.getNumOfPrograms() + 1);
+                }
+                catch (Exception ex)
+                {
+
+                }
+
+                computePageMode();
+
+            }
+        }
+
     }
 
     /**
@@ -174,6 +231,51 @@ public class CPU extends Thread implements Runnable
                 terminateProcess();
             }
 
+        }
+    }
+
+    public void computePageMode()
+    {
+        try {
+            //printYellow("Attempting execution of program " + processInfo.getProcessID() + "...");
+            PROCESS_START_TIME = System.nanoTime();
+            processInfo.setStartTime(PROCESS_START_TIME);
+            processInfo.setStatus(ProcessControlBlock.STATUS_RUNNING);
+        }catch (NullPointerException ex) {
+
+        }
+
+        while (doCompute) {
+            try {
+                String instruction = instructionCache.get(programCounter);
+                decode(instruction);
+
+            }catch (Exception ex) {
+                doCompute = false;
+                //osDriver.getMemoryManager().getPageFaults().add( (processInfo.getInstructionStart()+programCounter)/4 );
+                saveProcessCurrentState();
+                osDriver.getWaitQueue().add(processInfo);
+            }
+
+            try {
+                programCounter++;
+
+                execute();
+
+
+                // Halt compute if at end of program
+                if(programCounter.intValue() == util.parseHexToDecimal(processInfo.getInstructionCount()))
+                {
+                    doCompute = false;
+                    terminateProcess();
+                }
+            }catch (Exception ex)
+            {
+                doCompute = false;
+                programCounter--;
+                saveProcessCurrentState();
+                osDriver.getWaitQueue().add(processInfo);
+            }
         }
     }
 
@@ -243,7 +345,7 @@ public class CPU extends Thread implements Runnable
      *
      *************************************************************************************************************/
 
-    private void executeOP(String opCode)
+    private void executeOP(String opCode) throws Exception
     {
         Integer addressData,oldValue, newValue;
 
@@ -256,23 +358,55 @@ public class CPU extends Thread implements Runnable
                 reg2 = getRegister(decodedInstruction.get(REG_2));
                 addressData = util.binaryWordAddressToByteAddress(decodedInstruction.get(ADDRESS));
 
-                if(addressData != 0)
+                if(!osDriver.isUsePageSystem())
                 {
-                    for (int i=addressData, count=1; i<=(addressData + processInfo.getInputBufferCountInDecimal()); i++,count++)
+                    if(addressData != 0)
                     {
-                        if(util.parseHexToDecimal(cache.get(i)) != 0)
+                        for (int i=addressData, count=1; i<=(addressData + processInfo.getInputBufferCountInDecimal()); i++,count++)
                         {
-                            reg1.setValue(count);
+                            if(util.parseHexToDecimal(cache.get(i)) != 0)
+                            {
+                                reg1.setValue(count);
+                            }
+                        }
+                        if (reg1.getValue() == 1)
+                        {
+                            reg1.setValue(util.parseHexToDecimal(cache.get(processInfo.getRelativeInputBufferStartPoint())));
                         }
                     }
-                    if (reg1.getValue() == 1)
+                    else
                     {
-                        reg1.setValue(util.parseHexToDecimal(cache.get(processInfo.getRelativeInputBufferStartPoint())));
+                        reg1.setValue(util.parseHexToDecimal(cache.get(reg2.getValue()-1)));
                     }
                 }
-                else
-                {
-                    reg1.setValue(util.parseHexToDecimal(cache.get(reg2.getValue()-1)));
+                else{
+                    if(inputCache.size() != processInfo.getInputBufferCountInDecimal())
+                    {
+                        processInfo.getFaultNumbers().add( (processInfo.getInputStart()+inputCache.size())/4 );
+                        throw new Exception();
+                    }
+                    else
+                    {
+                        if(addressData != 0)
+                        {
+                            for (int i=0, count=1; i<inputCache.size(); i++,count++)
+                            {
+                                if(util.parseHexToDecimal(inputCache.get(i)) != 0)
+                                {
+                                    reg1.setValue(count);
+                                }
+                            }
+                            if (reg1.getValue() == 1)
+                            {
+                                reg1.setValue(util.parseHexToDecimal(inputCache.get(0)));
+                            }
+                        }
+                        else
+                        {
+                            reg1.setValue(util.parseHexToDecimal(inputCache.get( (reg2.getValue()-1)-processInfo.getJobSize() )));
+                        }
+                    }
+
                 }
 
                 //printYellow("Destination Register \"" + reg1.getRegisterID() + "\" value set to \"" + reg1.getValue() + "\"");
@@ -285,17 +419,43 @@ public class CPU extends Thread implements Runnable
                 reg2 = getRegister(decodedInstruction.get(REG_2));
                 addressData = util.binaryWordAddressToByteAddress(decodedInstruction.get(ADDRESS));
 
-                if(addressData != 0)
+                if(!osDriver.isUsePageSystem())
                 {
-                    //printYellow("Destination Address \"" + addressData + "\" old value is \"" + cache.get(addressData) + "\"");
-                    cache.set(addressData, util.decimalToHex(reg1.getValue().toString()));
-                    //printYellow("Destination Address \"" + addressData + "\" new value is \"" + cache.get(addressData) + "\"");
+                    if(addressData != 0)
+                    {
+                        //printYellow("Destination Address \"" + addressData + "\" old value is \"" + cache.get(addressData) + "\"");
+                        cache.set(addressData, util.decimalToHex(reg1.getValue().toString()));
+                        //printYellow("Destination Address \"" + addressData + "\" new value is \"" + cache.get(addressData) + "\"");
+                    }
+                    else
+                    {
+                        //printYellow("Destination Address \"" + reg2.getValue() + "\" old value is \"" + cache.get(reg2.getValue()) + "\"");
+                        cache.set(reg2.getValue(), util.decimalToHex(reg1.getValue().toString()));
+                        //printYellow("Destination Address \"" + reg2.getValue() + "\" new value is \"" + cache.get(reg2.getValue()) + "\"");
+                    }
                 }
                 else
                 {
-                    //printYellow("Destination Address \"" + reg2.getValue() + "\" old value is \"" + cache.get(reg2.getValue()) + "\"");
-                    cache.set(reg2.getValue(), util.decimalToHex(reg1.getValue().toString()));
-                    //printYellow("Destination Address \"" + reg2.getValue() + "\" new value is \"" + cache.get(reg2.getValue()) + "\"");
+                    if(outputCache.size() != processInfo.getOutputBufferCountInDecimal())
+                    {
+                        processInfo.getFaultNumbers().add( (processInfo.getOutputStart()+outputCache.size())/4 );
+                        throw new Exception();
+                    }
+                    else
+                    {
+                        if(addressData != 0)
+                        {
+                            //printYellow("Destination Address \"" + addressData + "\" old value is \"" + cache.get(addressData) + "\"");
+                            outputCache.set(addressData - (processInfo.getJobSize()+processInfo.getInputBufferCountInDecimal()), util.decimalToHex(reg1.getValue().toString()));
+                            //printYellow("Destination Address \"" + addressData + "\" new value is \"" + cache.get(addressData) + "\"");
+                        }
+                        else
+                        {
+                            //printYellow("Destination Address \"" + reg2.getValue() + "\" old value is \"" + cache.get(reg2.getValue()) + "\"");
+                            outputCache.set(reg2.getValue()- (processInfo.getJobSize()+processInfo.getInputBufferCountInDecimal()), util.decimalToHex(reg1.getValue().toString()));
+                            //printYellow("Destination Address \"" + reg2.getValue() + "\" new value is \"" + cache.get(reg2.getValue()) + "\"");
+                        }
+                    }
                 }
 
                 //Util.p("\n\n");
@@ -306,10 +466,28 @@ public class CPU extends Thread implements Runnable
                 bReg = getRegister(decodedInstruction.get(B_REG));
                 dReg = getRegister(decodedInstruction.get(D_REG));
 
+                if(!osDriver.isUsePageSystem())
+                {
+                    //printYellow("Destination Address \"" + dReg.getValue() + "\" old value is \"" + cache.get(dReg.getValue()) + "\"");
+                    cache.set( dReg.getValue() , util.decimalToHex(bReg.getValue().toString()) );
+                    //printYellow("Destination Address \"" + dReg.getValue() + "\" new value is \"" + cache.get(dReg.getValue()) + "\"");
+                }
+                else
+                {
+                    if(tempCache.size() != processInfo.getTempBufferCountInDecimal())
+                    {
+                        processInfo.getFaultNumbers().add( (processInfo.getTempStart()+tempCache.size())/4 );
+                        throw new Exception();
+                    }
+                    else
+                    {
+                        Integer fixSize = processInfo.getJobSize() + processInfo.getInputBufferCountInDecimal() + processInfo.getOutputBufferCountInDecimal();
+                        //printYellow("Destination Address \"" + dReg.getValue() + "\" old value is \"" + cache.get(dReg.getValue()) + "\"");
+                        tempCache.set( dReg.getValue() - fixSize, util.decimalToHex(bReg.getValue().toString()) );
+                        //printYellow("Destination Address \"" + dReg.getValue() + "\" new value is \"" + cache.get(dReg.getValue()) + "\"");
+                    }
+                }
 
-                //printYellow("Destination Address \"" + dReg.getValue() + "\" old value is \"" + cache.get(dReg.getValue()) + "\"");
-                cache.set( dReg.getValue() , util.decimalToHex(bReg.getValue().toString()) );
-                //printYellow("Destination Address \"" + dReg.getValue() + "\" new value is \"" + cache.get(dReg.getValue()) + "\"");
 
                 //Util.p("\n\n");
                 break;
@@ -320,11 +498,27 @@ public class CPU extends Thread implements Runnable
                 dReg = getRegister(decodedInstruction.get(D_REG));
                 addressData = util.binaryWordAddressToByteAddress(decodedInstruction.get(ADDRESS));
 
-                //printYellow("Destination Register \"" + dReg.getRegisterID() + "\" old value is \"" + dReg.getValue() + "\"");
-
-                dReg.setValue( util.parseHexToDecimal(cache.get(bReg.getValue() + addressData)) );
-
-                //printYellow("Destination Register \"" + dReg.getRegisterID() + "\" value set to \"" + dReg.getValue() + "\"");
+                if(!osDriver.isUsePageSystem())
+                {
+                    //printYellow("Destination Register \"" + dReg.getRegisterID() + "\" old value is \"" + dReg.getValue() + "\"");
+                    dReg.setValue( util.parseHexToDecimal(cache.get(bReg.getValue() + addressData)) );
+                    //printYellow("Destination Register \"" + dReg.getRegisterID() + "\" value set to \"" + dReg.getValue() + "\"");
+                }
+                else
+                {
+                    if(tempCache.size() != processInfo.getTempBufferCountInDecimal())
+                    {
+                        processInfo.getFaultNumbers().add( (processInfo.getTempStart()+tempCache.size())/4 );
+                        throw new Exception();
+                    }
+                    else
+                    {
+                        Integer fixSize = processInfo.getJobSize() + processInfo.getInputBufferCountInDecimal() + processInfo.getOutputBufferCountInDecimal();
+                        //printYellow("Destination Register \"" + dReg.getRegisterID() + "\" old value is \"" + dReg.getValue() + "\"");
+                        dReg.setValue( util.parseHexToDecimal(tempCache.get(bReg.getValue() - fixSize + addressData)) );
+                        //printYellow("Destination Register \"" + dReg.getRegisterID() + "\" value set to \"" + dReg.getValue() + "\"");
+                    }
+                }
 
                 //Util.p("\n\n");
                 break;
@@ -641,6 +835,11 @@ public class CPU extends Thread implements Runnable
         return base + address;
     }
 
+    private void effectivePageAddress(Page page, Integer offset)
+    {
+        osDriver.getMemoryManager().getMemoryLine(page.getFrameLineNumber(offset));
+    }
+
     private void updatePCB()
     {
         storeRegistersToPCB();
@@ -669,6 +868,16 @@ public class CPU extends Thread implements Runnable
         register14.reset();
         register15.reset();
 
+    }
+
+    private Integer getPageNumber(Integer codeLine)
+    {
+        return codeLine/4;
+    }
+
+    private Integer getPageOffset(Integer codeLine)
+    {
+        return codeLine%4;
     }
 
     private void storeRegistersToPCB()
@@ -707,7 +916,7 @@ public class CPU extends Thread implements Runnable
 
         printYellow("Process " + processInfo.getProcessID() + " finished...");
         long PROCESS_END_TIME = System.nanoTime();
-        processInfo.setComlpetionTime(PROCESS_END_TIME);
+        processInfo.setCompletionTime(PROCESS_END_TIME);
 
         //printYellow("Process ended after " + (PROCESS_END_TIME-PROCESS_START_TIME) + " (ns)");
 
@@ -715,7 +924,27 @@ public class CPU extends Thread implements Runnable
         osDriver.getTerminatedQueue().add(processInfo);
         //print("Removing process " + processInfo.getProcessID() + " from RAM...");
         //print("Process size = " + processInfo.fullCodeSizeInDecimal());
-        osDriver.getMemoryManager().removeFromRam(processInfo.getMemoryPointer(),processInfo.fullCodeSizeInDecimal());
+
+        if(!osDriver.isUsePageSystem()) {
+            osDriver.getMemoryManager().removeFromRam(processInfo.getMemoryPointer(), processInfo.fullCodeSizeInDecimal());
+        }
+        else {
+            for(Page page : processInfo.getFrameList())
+            {
+                if(page.getID().equals(processInfo.getBasePage()))
+                {
+
+                }
+                else if(page.getID().equals(processInfo.getLimitPage()))
+                {
+
+                }
+                else
+                {
+                    osDriver.getMemoryManager().clearFrame(page);
+                }
+            }
+        }
 
         /*if(processInfo.getProcessID().equals("1E"))
         {
@@ -754,15 +983,47 @@ public class CPU extends Thread implements Runnable
         }
     }
 
-    //TODO: Change this based on the "dirty bit" inside of a frame
     private void saveProcessCurrentState()
+    {
+        print("Saving process");
+        storeRegistersToPCB();
+
+        for(int i=0; i<outputCache.size(); i++)
+        {
+            Integer currentLine = processInfo.getOutputStart() + i;
+
+            Integer pageNumber = currentLine/4;
+            Integer pageOffset = currentLine%4;
+
+            Integer frameLineNumber = osDriver.getMemoryManager().getPage(pageNumber).getFrameLineNumber(pageOffset);
+            String frameLine = outputCache.get(i);
+
+            osDriver.getMemoryManager().writeToMemory(frameLineNumber,frameLine);
+        }
+
+        for(int i=0; i<tempCache.size(); i++)
+        {
+            Integer currentLine = processInfo.getTempStart() + i;
+
+            Integer pageNumber = currentLine/4;
+            Integer pageOffset = currentLine%4;
+
+            Integer frameLineNumber = osDriver.getMemoryManager().getPage(pageNumber).getFrameLineNumber(pageOffset);
+            String frameLine = tempCache.get(i);
+
+            osDriver.getMemoryManager().writeToMemory(frameLineNumber,frameLine);
+        }
+        print("Saving Process done");
+    }
+
+    //TODO: Change this based on the "dirty bit" inside of a frame
+    private void saveProcessCurrentStateToDisk()
     {
         storeRegistersToPCB();
 
         sendOutputBufferToDisk();
 
         sendTempBufferToDisk();
-
     }
 
     private void printRegisters()

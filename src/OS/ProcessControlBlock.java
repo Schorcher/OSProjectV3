@@ -5,6 +5,7 @@ import Memory.Page;
 import Misc.Util;
 
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * Created by David McFall on 2/24/16.
@@ -56,13 +57,82 @@ public class ProcessControlBlock
 
     Integer numberOfIO_Operations=0;
 
-    long startTime, comlpetionTime, creationTime;
+    long startTime, completionTime, creationTime;
 
-    ArrayList<Page> pageList = new ArrayList<>();
+    ArrayList<Integer> pageList = new ArrayList<>();
+    Integer pageStartOffset = 0, pageEndOffset = 0;
+
+    ArrayList<Page> frameList = new ArrayList<>();
+    ArrayList<Integer> lineNumbers = new ArrayList<>();
+
+    ConcurrentLinkedDeque<Integer> faultNumbers = new ConcurrentLinkedDeque<>();
+
+    Integer instructionStart,instructionEnd,inputStart,inputEnd,outputStart,outputEnd,tempStart,tempEnd;
 
     public ProcessControlBlock()
     {
 
+    }
+
+    public String checkNumberArea(Integer numToCheck)
+    {
+        if((numToCheck >= instructionStart) && (numToCheck <= instructionEnd))
+        {
+            return "INSTRUCTION";
+        }
+        if((numToCheck >= inputStart) && (numToCheck <= inputEnd))
+        {
+            return "INPUT";
+        }
+        if((numToCheck >= outputStart) && (numToCheck <= outputEnd))
+        {
+            return "OUTPUT";
+        }
+        if((numToCheck >= tempStart) && (numToCheck <= tempEnd))
+        {
+            return "TEMP";
+        }
+        return "INVALID";
+    }
+
+    public Integer getCurrentPage()
+    {
+        return (instructionStart + programCounter)/4;
+    }
+
+    public Integer getBasePage()
+    {
+        return (instructionStart/4);
+    }
+    public Integer getBasePageOffset()
+    {
+        return (instructionStart%4);
+    }
+
+    public Integer getLimitPage()
+    {
+        return (tempEnd/4);
+    }
+    public Integer getLimitOffset()
+    {
+        return (tempEnd%4);
+    }
+
+    public Integer getInstructionStartPage()
+    {
+        return (instructionStart/4);
+    }
+    public Integer getInputStartPage()
+    {
+        return (inputStart/4);
+    }
+    public Integer getOutputStartPage()
+    {
+        return (outputStart/4);
+    }
+    public Integer getTempStartPage()
+    {
+        return (tempStart/4);
     }
 
 
@@ -119,7 +189,7 @@ public class ProcessControlBlock
 
     public long getProcessRunTime()
     {
-        return getComlpetionTime() - getStartTime();
+        return getCompletionTime() - getStartTime();
     }
 
     public long getWaitingTime()
@@ -269,21 +339,98 @@ public class ProcessControlBlock
         this.creationTime = creationTime;
     }
 
-    public long getComlpetionTime() {
-        return comlpetionTime;
+    public long getCompletionTime() {
+        return completionTime;
     }
 
-    public void setComlpetionTime(long comlpetionTime) {
-        this.comlpetionTime = comlpetionTime;
+    public void setCompletionTime(long completionTime) {
+        this.completionTime = completionTime;
     }
 
     public Integer getNumberOfIO_Operations() {
         return numberOfIO_Operations;
     }
 
-    public ArrayList<Page> getPageList()
+    public ArrayList<Integer> getPageList()
     {
         return pageList;
     }
 
+    public ArrayList<Page> getFrameList()
+    {
+        return frameList;
+    }
+
+    public Integer getInstructionStart() {
+        return instructionStart;
+    }
+
+    public void setInstructionStart(Integer instructionStart) {
+        this.instructionStart = instructionStart;
+    }
+
+    public Integer getInstructionEnd() {
+        return instructionEnd;
+    }
+
+    public void setInstructionEnd(Integer instructionEnd) {
+        this.instructionEnd = instructionEnd;
+    }
+
+    public Integer getInputStart() {
+        return inputStart;
+    }
+
+    public void setInputStart(Integer inputStart) {
+        this.inputStart = inputStart;
+    }
+
+    public Integer getInputEnd() {
+        return inputEnd;
+    }
+
+    public void setInputEnd(Integer inputEnd) {
+        this.inputEnd = inputEnd;
+    }
+
+    public Integer getOutputStart() {
+        return outputStart;
+    }
+
+    public void setOutputStart(Integer outputStart) {
+        this.outputStart = outputStart;
+    }
+
+    public Integer getOutputEnd() {
+        return outputEnd;
+    }
+
+    public void setOutputEnd(Integer outputEnd) {
+        this.outputEnd = outputEnd;
+    }
+
+    public Integer getTempStart() {
+        return tempStart;
+    }
+
+    public void setTempStart(Integer tempStart) {
+        this.tempStart = tempStart;
+    }
+
+    public Integer getTempEnd() {
+        return tempEnd;
+    }
+
+    public void setTempEnd(Integer tempEnd) {
+        this.tempEnd = tempEnd;
+    }
+
+    public ArrayList<Integer> getLineNumbers() {
+        return lineNumbers;
+    }
+
+    public ConcurrentLinkedDeque<Integer> getFaultNumbers()
+    {
+        return faultNumbers;
+    }
 }

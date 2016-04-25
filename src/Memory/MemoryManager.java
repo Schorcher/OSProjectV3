@@ -2,6 +2,7 @@ package Memory;
 
 import Misc.Util;
 import OS.OSDriver;
+import OS.ProcessControlBlock;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -41,73 +42,280 @@ public class MemoryManager
      *
      ***************************************************************************************/
     private Page[] pageList = new Page[Page.NUMBER_OF_PAGES];       // 512 Pages
-    private Page[] frameList = new Page[Frame.NUMBER_OF_FRAMES];    // 256 Frames
+    private Page[] frameList = new Page[Page.NUMBER_OF_FRAMES];    // 256 Frames
 
-    private ConcurrentLinkedDeque<Page> freeFrameList = new ConcurrentLinkedDeque<>();
+    private ConcurrentLinkedDeque<Page> pageListQueue = new ConcurrentLinkedDeque<>();
+    private ConcurrentLinkedDeque<Integer> freeFrameNumberList = new ConcurrentLinkedDeque<>();
+    private ConcurrentLinkedDeque<Integer> pageFaults = new ConcurrentLinkedDeque<>();
 
     public void setupPageTable()
     {
         setupPages();
-        setupFrames();
+        //setupFrames();
+        updateFreeFrameNumberList();
     }
 
-    private void setupPages()
-    {
-        Integer count = 0, pageCount = 0;
-        for(Page page : pageList)
-        {
-            page = new Page(pageCount);
-            pageCount++;
-            page.setLineNumber(0,count);
-            count++;
-            page.setLineNumber(1,count);
-            count++;
-            page.setLineNumber(2,count);
-            count++;
-            page.setLineNumber(3,count);
-            count++;
-        }
-    }
-
+    /*************************************
+     *
+     *           FRAME METHODS
+     *
+     *************************************/
+    private ReadWriteLock frameLock = new ReentrantReadWriteLock(true);
     private void setupFrames()
     {
-        Integer frameCount = 0;
+        /*Integer count = 0, frameCount = 0;
         for(Page frame : frameList)
         {
             frame = new Page(frameCount);
             frameCount++;
+            frame.setLineNumber(0,count);
+            count++;
+            frame.setLineNumber(1,count);
+            count++;
+            frame.setLineNumber(2,count);
+            count++;
+            frame.setLineNumber(3,count);
+            count++;
             freeFrameList.add(frame);
+        }*/
+    }
+
+    public Page getFrame(Integer pageNumber)
+    {
+       return null;
+    }
+
+    public Integer findFrame(Integer pageNumber)
+    {
+        frameLock.readLock().lock();
+        try{
+            for(int i=0; i<frameList.length; i++)
+            {
+                if(frameList[i].getID().equals(pageNumber))
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }finally {
+            frameLock.readLock().unlock();
         }
     }
 
     //TODO: Finish page faults
-    private boolean pageFault(Page page)
+    public void handlePageFault(ProcessControlBlock process)
     {
-        return true;
+        try{
+            Integer faultNumber = process.getFaultNumbers().pollFirst();
+
+            if(faultNumber != null)
+            {
+                pageFault(faultNumber);
+                handlePageFault(process);
+            }
+        }catch (Exception ex)
+        {
+
+        }
     }
 
-    //TODO: Check that this works properly
-    private Page writePageToMemory(Integer pageNumber)
+    public void pageFault(Integer pageNumber)
     {
-        Integer memorySpace = findBestFitSpaceInMemory(4);
-
-        Page newFrame = freeFrameList.pollFirst();
-
-        newFrame.setLineNumber(0,memorySpace);
-        newFrame.setLineNumber(1,memorySpace+1);
-        newFrame.setLineNumber(2,memorySpace+2);
-        newFrame.setLineNumber(3,memorySpace+3);
-
-        writeToMemory(newFrame.getLineNumber(0),getFromDisk(pageList[pageNumber].getLineNumber(0)));
-        writeToMemory(newFrame.getLineNumber(1),getFromDisk(pageList[pageNumber].getLineNumber(0)));
-        writeToMemory(newFrame.getLineNumber(2),getFromDisk(pageList[pageNumber].getLineNumber(0)));
-        writeToMemory(newFrame.getLineNumber(3),getFromDisk(pageList[pageNumber].getLineNumber(0)));
-
-        return newFrame;
+        writePageToMemory(getPage(pageNumber));
     }
 
-    //TODO: Add any other necessary methods
+    public void writePageToMemory(Page page)
+    {
+        frameLock.readLock().lock();
+        try{
+            //Integer freeFrameNumber = getFreeFrameNumber();
+            Integer freeFrameNumber = freeFrameNumberList.poll();
+            if(freeFrameNumber != -1)
+            {
+                page.setFrameID(freeFrameNumber);
+                frameList[freeFrameNumber] = page;
 
+                writeToMemory(getFreeMemoryLine(),getFromDisk(page.getPageLineNumber(0)));
+                writeToMemory(getFreeMemoryLine(),getFromDisk(page.getPageLineNumber(1)));
+                writeToMemory(getFreeMemoryLine(),getFromDisk(page.getPageLineNumber(2)));
+                writeToMemory(getFreeMemoryLine(),getFromDisk(page.getPageLineNumber(3)));
+
+                page.setInMemory(true);
+            }
+            else{
+                return;
+            }
+        }finally {
+            frameLock.readLock().unlock();
+        }
+    }
+
+    private void clearFrameMemory(Page frame)
+    {
+        writeToMemory(frame.getFrameLineNumber(0),null);
+        writeToMemory(frame.getFrameLineNumber(1),null);
+        writeToMemory(frame.getFrameLineNumber(2),null);
+        writeToMemory(frame.getFrameLineNumber(3),null);
+    }
+
+    public void clearFrame(Page frame)
+    {
+        if(frame.getHasBeenModified())
+        {
+            writeFrameToDisk(frame);
+        }
+        clearFrameMemory(frame);
+        freeFrameNumberList.add(frame.getFrameID());
+        frameList[frame.getFrameID()] = null;
+        frame.setInMemory(false);
+    }
+
+    public void writeFrameToDisk(Page frame)
+    {
+        frameLock.readLock().lock();
+        try {
+            storeInDisk(getMemoryLine(frame.getFrameLineNumber(0)),frame.getPageLineNumber(0));
+            storeInDisk(getMemoryLine(frame.getFrameLineNumber(1)),frame.getPageLineNumber(1));
+            storeInDisk(getMemoryLine(frame.getFrameLineNumber(2)),frame.getPageLineNumber(2));
+            storeInDisk(getMemoryLine(frame.getFrameLineNumber(3)),frame.getPageLineNumber(3));
+        }finally {
+            frameLock.readLock().unlock();
+        }
+    }
+
+    public void updateFreeFrameNumberList()
+    {
+        frameLock.readLock().lock();
+        try {
+            for(Integer i=0; i<frameList.length; i++)
+            {
+                if( (frameList[i]== null) && (!freeFrameNumberList.contains(i)) )
+                {
+                    freeFrameNumberList.add(i);
+                }
+            }
+        }finally {
+            frameLock.readLock().unlock();
+        }
+    }
+
+    public ConcurrentLinkedDeque<Integer> getFreeFrameNumberList() {
+        return freeFrameNumberList;
+    }
+    public ConcurrentLinkedDeque<Integer> getPageFaults() {
+        return pageFaults;
+    }
+    public Page[] getFrameList() {
+        return frameList;
+    }
+    public Integer getFreeFrameNumber()
+    {
+        for(Integer i=0; i<frameList.length; i++)
+        {
+            if(frameList[i] == null)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+
+    /*************************************
+     *
+     *           PAGE METHODS
+     *
+     *************************************/
+    private ReentrantReadWriteLock pageLock = new ReentrantReadWriteLock();
+    private void setupPages()
+    {
+        pageLock.writeLock().lock();
+        try {
+            Integer count = 0, pageCount = 0;
+            for(int i=0; i<pageList.length; i++)
+            {
+                Page page = new Page(pageCount);
+                pageCount++;
+                page.setPageLineNumber(0,count);
+                count++;
+                page.setPageLineNumber(1,count);
+                count++;
+                page.setPageLineNumber(2,count);
+                count++;
+                page.setPageLineNumber(3,count);
+                count++;
+
+                pageList[i] = page;
+            }
+        }finally {
+            pageLock.writeLock().unlock();
+        }
+    }
+
+    public Boolean pageHasFreeLine(Page page)
+    {
+        pageLock.readLock().lock();
+        try {
+            for(Integer lineNumber : page.getPageLineNumbers())
+            {
+                if(getFromDisk(lineNumber) == null)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }finally {
+            pageLock.readLock().unlock();
+        }
+    }
+
+    public Page getFirstFreePage()
+    {
+        pageLock.readLock().lock();
+        try {
+            for(Page page : pageList)
+            {
+                if(pageHasFreeLine(page))
+                {
+                    return page;
+                }
+            }
+            return null;
+        }finally {
+            pageLock.readLock().unlock();
+        }
+    }
+
+    public void storeInFreePageLine(Page page, String lineToStore)
+    {
+        pageLock.writeLock().lock();
+        try{
+            for(Integer lineNumber : page.getPageLineNumbers())
+            {
+                if(getFromDisk(lineNumber) != null)
+                {
+                    storeInDisk(lineToStore,lineNumber);
+                    return;
+                }
+            }
+        }finally {
+            pageLock.writeLock().unlock();
+        }
+    }
+
+    public Page[] getPageList() {
+        return pageList;
+    }
+
+    public Page getPage(Integer pageNumber)
+    {
+        pageLock.readLock().lock();
+        try {
+            return pageList[pageNumber];
+        }finally {
+            pageLock.readLock().unlock();
+        }
+    }
 
 
     /***************************************************************************************
@@ -219,6 +427,52 @@ public class MemoryManager
         //print("Free memory = " + getAmountOfFreeMemory());
     }
 
+    public Integer getFreeMemoryLine()
+    {
+        memoryLock.readLock().lock();
+        try{
+            int count = 0;
+            for (String str : memory)
+            {
+                if(str == null)
+                {
+                    return count;
+                }
+                else
+                {
+                    count++;
+                }
+            }
+            return -1;
+        }finally {
+            memoryLock.readLock().unlock();
+        }
+    }
+
+    public Boolean hasAvailableSpace(int spaceRequired)
+    {
+        memoryLock.readLock().lock();
+        try{
+            int count = 0;
+            for (String str : memory)
+            {
+                if(str == null)
+                {
+                    count++;
+                }
+            }
+            if (count >= spaceRequired)
+            {
+                return true;
+            }
+            else {
+                return false;
+            }
+
+        }finally {
+            memoryLock.readLock().unlock();
+        }
+    }
 
     /***************************************************************************************
      *

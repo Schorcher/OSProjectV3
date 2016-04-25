@@ -1,5 +1,6 @@
 package OS;
 
+import Memory.Page;
 import Misc.Util;
 
 import java.io.BufferedReader;
@@ -36,9 +37,15 @@ public class Loader
     OSDriver osDriver;
     String usrDir = System.getProperty("user.home");
 
+    int instructionStart=0, inputStart=0, outputStart=0, tempStart=0;
+    int instructionEnd=0, inputEnd=0, outputEnd=0, tempEnd=0;
+
+    Util util = new Util();
+
     public Loader(OSDriver osDriver)
     {
         this.osDriver=osDriver;
+        //currentPage = osDriver.getMemoryManager().getFirstFreePage();
     }
 
     /**
@@ -96,22 +103,58 @@ public class Loader
                     }
                     else if( splitLine[1].toUpperCase().equals("JOB") )
                     {
-                        // print("JOB");
-                        //print("Program ID: " + splitLine[2] + "\t\t\t -> " + hexToDecimal(splitLine[2]));
-                        //print("Number of Words: " + splitLine[3] + "\t -> " + hexToDecimal(splitLine[3]) );
+                        //print("JOB");
+                        //print("Program ID: " + splitLine[2] + "\t\t\t -> " + util.parseHexToDecimal(splitLine[2]));
+                        //print("Number of Words: " + splitLine[3] + "\t -> " + util.parseHexToDecimal(splitLine[3]) );
                         //print("Priority: " + splitLine[4] );
 
                         lastPID = splitLine[2];
                         sendJobPropertiesToPCB(splitLine[2],splitLine[3],splitLine[4]);
+
+                        instructionStart = lineCount;
                     }
                     else if( splitLine[1].toUpperCase().equals("DATA") )
                     {
-                        // print("DATA");
-                        // print("Input buffer size: "+ splitLine[2] + "\t -> " + hexToDecimal(splitLine[2]));
-                        // print("Output buffer size: " + splitLine[3] + "\t -> " + hexToDecimal(splitLine[3]));
-                        // print("Temp buffer size: " + splitLine[4] + "\t -> " + hexToDecimal(splitLine[4]));
+                        //print("DATA");
+                        //print("Input buffer size: "+ splitLine[2] + "\t -> " + util.parseHexToDecimal(splitLine[2]));
+                        //print("Output buffer size: " + splitLine[3] + "\t -> " + util.parseHexToDecimal(splitLine[3]));
+                        //print("Temp buffer size: " + splitLine[4] + "\t -> " + util.parseHexToDecimal(splitLine[4]));
+                        instructionEnd = lineCount - 1;
 
                         sendDataPropertiesToPCB(lastPID,splitLine[2],splitLine[3],splitLine[4]);
+
+                        inputStart = instructionEnd + 1;
+                        inputEnd = inputStart + 19;
+
+                        outputStart = inputEnd + 1;
+                        outputEnd = outputStart + 11;
+
+                        tempStart = outputEnd + 1;
+                        tempEnd = tempStart + 11;
+
+                        sendPageDataToPCB();
+
+                        //print("NUMBERS");
+
+                        //print("Instruction Start: \t\t-> " + instructionStart);
+                        //print("Page would be -> " + (instructionStart/4));
+                        //print("Instruction End: \t\t\t-> " + instructionEnd);
+                        //print("Page would be -> " + (instructionEnd/4));
+
+                        //print("Input Start: \t\t\t\t->" + inputStart);
+                        //print("Page would be -> " + (inputStart/4));
+                        //print("Input End: \t\t\t\t->" + inputEnd);
+                        //print("Page would be -> " + (inputEnd/4));
+
+                        //print("Output Start: \t\t\t->" + outputStart);
+                        //print("Page would be -> " + (outputStart/4));
+                        //print("Output End: \t\t\t\t->" + outputEnd);
+                        //print("Page would be -> " + (outputEnd/4));
+
+                        //print("Temp Start: \t\t\t\t->" + tempStart);
+                        //print("Page would be -> " + (tempStart/4));
+                        //print("Temp End: \t\t\t\t->" + tempEnd);
+                        //print("Page would be -> " + (tempEnd/4));
                     }
                 }
                 else
@@ -144,7 +187,6 @@ public class Loader
         }
 
     }
-
 
     void sendJobPropertiesToPCB(String pID, String codeSize, String priority)
     {
@@ -190,6 +232,22 @@ public class Loader
 
     }
 
+    void sendPageDataToPCB()
+    {
+        osDriver.getNewQueue().getLast().setInstructionStart(instructionStart);
+        osDriver.getNewQueue().getLast().setInstructionEnd(instructionEnd);
+        osDriver.getNewQueue().getLast().setInputStart(inputStart);
+        osDriver.getNewQueue().getLast().setInputEnd(inputEnd);
+        osDriver.getNewQueue().getLast().setOutputStart(outputStart);
+        osDriver.getNewQueue().getLast().setOutputEnd(outputEnd);
+        osDriver.getNewQueue().getLast().setTempStart(tempStart);
+        osDriver.getNewQueue().getLast().setTempEnd(tempEnd);
+
+        for(int i=instructionStart; i<=tempEnd; i++)
+        {
+            osDriver.getNewQueue().getLast().getLineNumbers().add(i);
+        }
+    }
     // Sends the program to RAM ( memory )
     public void loadProgramToRam(int diskStartIndex, int jobSize, int memStartIndex)
     {
@@ -207,6 +265,11 @@ public class Loader
             diskStartIndex++;
         }
         //print("Done...\n");
+    }
+
+    public void loadPageToRam()
+    {
+
     }
 
     /**

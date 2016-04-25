@@ -21,6 +21,8 @@ public class OSDriver
 
     CPU cpu1=new CPU(this),cpu2=new CPU(this),cpu3=new CPU(this),cpu4=new CPU(this);
 
+    ArrayList<CPU> activeCPUs = new ArrayList<>();
+
     ConcurrentLinkedDeque<ProcessControlBlock> newQueue = new ConcurrentLinkedDeque<>();
     ConcurrentLinkedDeque<ProcessControlBlock> readyQueue = new ConcurrentLinkedDeque<>();
     ConcurrentLinkedDeque<ProcessControlBlock> terminatedQueue = new ConcurrentLinkedDeque<>();
@@ -29,8 +31,11 @@ public class OSDriver
 
     volatile boolean notDone = true;
     volatile Integer numOfPrograms = 0;
+    boolean usePageSystem = false;
     long SYSTEM_START_TIME = System.nanoTime();
     long SYSTEM_END_TIME;
+
+    String cpuVersion,priority,pageAnswer;
 
 
     /**
@@ -59,10 +64,13 @@ public class OSDriver
     {
         Scanner scanner = new Scanner(System.in);
         print("1-CPU or N-CPU?");
-        String cpuVersion = scanner.nextLine();
+        cpuVersion = scanner.nextLine();
 
         print("Please enter the priority version. (SJF,Priority,FIFO)");
-        String priority = scanner.nextLine();
+        priority = scanner.nextLine();
+
+        print("Do you want to use the paging system? (yes or no)");
+        pageAnswer = scanner.nextLine();
 
         loader.loadFile();
 
@@ -81,9 +89,41 @@ public class OSDriver
                 orderBy_FIFO();
         }
 
+        switch (pageAnswer.toUpperCase())
+        {
+            case "YES":
+                setUsePageSystem(true);
+                memoryManager.setupPageTable();
+                setupPagingSystem();
+                setupInitialProcessFrames();
+                runOSWithPaging();
+                break;
+            case "NO":
+                setUsePageSystem(false);
+                runOSWithoutPaging();
+                break;
+            default:
+                setUsePageSystem(false);
+                runOSWithoutPaging();
+        }
+
+
+
+
+
+        shutdownOS();
+    }
+
+    public void runOSWithoutPaging()
+    {
         switch (cpuVersion.toUpperCase())
         {
             case "N":
+                activeCPUs.add(cpu1);
+                activeCPUs.add(cpu2);
+                activeCPUs.add(cpu3);
+                activeCPUs.add(cpu4);
+
                 scheduler();
                 scheduler();
                 scheduler();
@@ -95,12 +135,16 @@ public class OSDriver
                 cpu4.start();
                 break;
             case "1":
+                activeCPUs.add(cpu1);
+
                 scheduler();
                 scheduler();
 
                 cpu1.start();
                 break;
             default:
+                activeCPUs.add(cpu1);
+
                 scheduler();
                 scheduler();
 
@@ -110,9 +154,37 @@ public class OSDriver
         while (notDone) {
             scheduler();
         }
+    }
 
+    public void runOSWithPaging()
+    {
+        switch (cpuVersion.toUpperCase())
+        {
+            case "N":
+                activeCPUs.add(cpu1);
+                activeCPUs.add(cpu2);
+                activeCPUs.add(cpu3);
+                activeCPUs.add(cpu4);
 
-        shutdownOS();
+                cpu1.start();
+                cpu2.start();
+                cpu3.start();
+                cpu4.start();
+                break;
+            case "1":
+                activeCPUs.add(cpu1);
+
+                cpu1.start();
+                break;
+            default:
+                activeCPUs.add(cpu1);
+
+                cpu1.start();
+        }
+
+        while (notDone) {
+            pageScheduler();
+        }
     }
 
     /**
@@ -167,10 +239,74 @@ public class OSDriver
         }
     }
 
+    public void setupPagingSystem()
+    {
+        ArrayList<ProcessControlBlock> tempList = new ArrayList<>();
+        tempList.addAll(newQueue);
+
+        for(ProcessControlBlock process : tempList)
+        {
+            for(int i=process.getBasePage(); i<=process.getLimitPage(); i++)
+            {
+                Integer pageNumber = i/4;
+
+                if(!process.getPageList().contains(pageNumber))
+                {
+                    process.getPageList().add(pageNumber);
+                }
+            }
+        }
+    }
+
+    public void setupInitialProcessFrames()
+    {
+        //memoryManager.updateFreeFrameNumberList();
+
+        for(int i=0; i<30; i++)
+        {
+            ProcessControlBlock process = newQueue.pollFirst();
+
+            // Gives process 4 memory frames
+            //One Frame for instruction
+            memoryManager.writePageToMemory(memoryManager.getPage(process.getInstructionStartPage()));
+            //One Frame for input buffer
+            memoryManager.writePageToMemory(memoryManager.getPage(process.getInputStartPage()));
+            //One Frame for output buffer
+            memoryManager.writePageToMemory(memoryManager.getPage(process.getOutputStartPage()));
+            //One Frame for temp buffer
+            memoryManager.writePageToMemory(memoryManager.getPage(process.getTempStartPage()));
+
+            readyQueue.add(process);
+        }
+    }
+
+    public void pageScheduler()
+    {
+        if(!waitQueue.isEmpty())
+        {
+            try {
+                print("Handling page fault");
+                ProcessControlBlock process = waitQueue.pollFirst();
+                memoryManager.handlePageFault(process);
+                readyQueue.addFirst(process);
+            }
+            catch (Exception ex)
+            {
+                print("Something went wrong with page scheduler");
+            }
+        }
+    }
+
     public void shortScheduler()
     {
 
     }
+
+    public  void dispatcher()
+    {
+
+    }
+
 
     private void orderBy_SJF()
     {
@@ -261,7 +397,7 @@ public class OSDriver
         for(int i=0; i<30; i++)
         {
             ProcessControlBlock process = terminatedQueue.poll();
-            print("Process: " + process.getProcessID() + "\t\tCompletion Time: " + process.getComlpetionTime() + " (ns)");
+            print("Process: " + process.getProcessID() + "\t\tCompletion Time: " + process.getCompletionTime() + " (ns)");
         }
         print("End Completion Times");
     }
@@ -382,6 +518,14 @@ public class OSDriver
 
     public void setNumOfPrograms(Integer numOfPrograms) {
         this.numOfPrograms = numOfPrograms;
+    }
+
+    public boolean isUsePageSystem() {
+        return usePageSystem;
+    }
+
+    public void setUsePageSystem(boolean usePageSystem) {
+        this.usePageSystem = usePageSystem;
     }
 
     /**

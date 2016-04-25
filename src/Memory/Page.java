@@ -12,13 +12,13 @@ public class Page
     static Integer NUMBER_OF_FRAMES = (1024/4);
 
     private Integer ID = 0;
-
-    private String[] lines = new String[PAGE_SIZE];
-
-    private Integer[] lineNumbers = new Integer[PAGE_SIZE];
-
+    private Integer frameID = 0;
+    private Integer[] pageLineNumbers = new Integer[PAGE_SIZE];
+    private Integer[] frameLineNumbers = new Integer[PAGE_SIZE];
     private Boolean isAvailable = true;
-
+    private Boolean isInMemory = false;
+    private Boolean hasBeenModified = false;
+    private Boolean isShared = false;
 
     public Page()
     {
@@ -30,52 +30,24 @@ public class Page
         this.ID = ID;
     }
 
-    public String getLine(Integer offset)
+    public Integer getPageLineNumber(Integer offset)
     {
-        return lines[offset];
+        return pageLineNumbers[offset];
     }
 
-    public Integer getLineNumber(Integer offset)
+    public void setPageLineNumber(Integer offset, Integer newValue)
     {
-        return lineNumbers[offset];
+        pageLineNumbers[offset] = newValue;
     }
 
-    public void setLineNumber(Integer offset, Integer newValue)
+    public Integer getFrameLineNumber(Integer offset)
     {
-        lineNumbers[offset] = newValue;
+        return frameLineNumbers[offset];
     }
 
-    public String getFreeLine()
+    public void setFrameLineNumber(Integer offset, Integer newValue)
     {
-        for(String line : lines)
-        {
-            if(line == null)
-            {
-                return line;
-            }
-            else
-            {
-                // Do nothing
-            }
-        }
-
-        return null;
-    }
-
-    public Boolean hasFreeLine()
-    {
-        for (String line : lines)
-        {
-            if(line != null)
-            {
-                //return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-        return false;
+        pageLineNumbers[offset] = newValue;
     }
 
     public Integer getID()
@@ -91,19 +63,43 @@ public class Page
         isAvailable = available;
     }
 
-    public Integer[] getLineNumbers() {
-        return lineNumbers;
+    public Integer[] getPageLineNumbers() {
+        return pageLineNumbers;
     }
 
-    public void setLineNumbers(Integer[] lineNumbers) {
-        this.lineNumbers = lineNumbers;
+    public Integer[] getFrameLineNumbers() {
+        return frameLineNumbers;
     }
 
-    public String[] getLines() {
-        return lines;
+    public Integer getFrameID() {
+        return frameID;
     }
 
-    public void setLines(String[] lines) {
-        this.lines = lines;
+    public void setFrameID(Integer frameID) {
+        this.frameID = frameID;
+    }
+
+    public Boolean getInMemory() {
+        return isInMemory;
+    }
+
+    public void setInMemory(Boolean inMemory) {
+        isInMemory = inMemory;
+    }
+
+    public Boolean getHasBeenModified() {
+        return hasBeenModified;
+    }
+
+    public void setHasBeenModified(Boolean hasBeenModified) {
+        this.hasBeenModified = hasBeenModified;
+    }
+
+    public Boolean getShared() {
+        return isShared;
+    }
+
+    public void setShared(Boolean shared) {
+        isShared = shared;
     }
 }
