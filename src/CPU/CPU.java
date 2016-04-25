@@ -100,6 +100,8 @@ public class CPU extends Thread implements Runnable
                     processInfo.setCpuID(this.getName());
                 }
 
+                osDriver.setNumOfPrograms(osDriver.getNumOfPrograms() + 1);
+
             }
             catch (Exception ex)
             {
@@ -715,7 +717,12 @@ public class CPU extends Thread implements Runnable
         //print("Process size = " + processInfo.fullCodeSizeInDecimal());
         osDriver.getMemoryManager().removeFromRam(processInfo.getMemoryPointer(),processInfo.fullCodeSizeInDecimal());
 
-        if(processInfo.getProcessID().equals("1E"))
+        /*if(processInfo.getProcessID().equals("1E"))
+        {
+            osDriver.setNotDone(false);
+        }*/
+
+        if(osDriver.getNumOfPrograms().equals(30))
         {
             osDriver.setNotDone(false);
         }

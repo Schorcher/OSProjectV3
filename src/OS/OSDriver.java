@@ -5,6 +5,8 @@ import Memory.MemoryManager;
 import Misc.Util;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Scanner;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
@@ -26,6 +28,7 @@ public class OSDriver
     ConcurrentLinkedDeque<ProcessControlBlock> blockedQueue = new ConcurrentLinkedDeque<>();
 
     volatile boolean notDone = true;
+    volatile Integer numOfPrograms = 0;
     long SYSTEM_START_TIME = System.nanoTime();
     long SYSTEM_END_TIME;
 
@@ -54,27 +57,62 @@ public class OSDriver
 
     public void runOS()
     {
+        Scanner scanner = new Scanner(System.in);
+        print("1-CPU or N-CPU?");
+        String cpuVersion = scanner.nextLine();
+
+        print("Please enter the priority version. (SJF,Priority,FIFO)");
+        String priority = scanner.nextLine();
 
         loader.loadFile();
 
-        scheduler();
-        scheduler();
-        scheduler();
-        scheduler();
-
-        cpu1.start();
-        cpu2.start();
-        cpu3.start();
-        cpu4.start();
-
-        while (notDone)
+        switch (priority.toUpperCase())
         {
+            case"SJF":
+                orderBy_SJF();
+                break;
+            case"PRIORITY":
+                orderBy_Priority();
+                break;
+            case"FIFO":
+                orderBy_FIFO();
+                break;
+            default:
+                orderBy_FIFO();
+        }
+
+        switch (cpuVersion.toUpperCase())
+        {
+            case "N":
+                scheduler();
+                scheduler();
+                scheduler();
+                scheduler();
+
+                cpu1.start();
+                cpu2.start();
+                cpu3.start();
+                cpu4.start();
+                break;
+            case "1":
+                scheduler();
+                scheduler();
+
+                cpu1.start();
+                break;
+            default:
+                scheduler();
+                scheduler();
+
+                cpu1.start();
+        }
+
+        while (notDone) {
             scheduler();
         }
 
 
         shutdownOS();
-
     }
 
     /**
@@ -136,17 +174,35 @@ public class OSDriver
 
     private void orderBy_SJF()
     {
+        ArrayList<ProcessControlBlock> tempList = new ArrayList<>();
 
+        tempList.addAll(newQueue);
+
+        Collections.sort(tempList, (o1, o2) ->
+                o1.getJobSize() - o2.getJobSize());
+
+        newQueue.clear();
+
+        newQueue.addAll(tempList);
     }
 
     private void orderBy_Priority()
     {
+        ArrayList<ProcessControlBlock> tempList = new ArrayList<>();
 
+        tempList.addAll(newQueue);
+
+        Collections.sort(tempList, (o1, o2) ->
+                o1.getPriorityInInteger() - o2.getPriorityInInteger());
+
+        newQueue.clear();
+
+        newQueue.addAll(tempList);
     }
 
     private void orderBy_FIFO()
     {
-
+        // Does this by default
     }
 
     public void shutdownOS()
@@ -159,6 +215,8 @@ public class OSDriver
         {
 
         }
+
+        print("Number of Completed Jobs: " + numOfPrograms);
 
         //printProcessOutputs();
 
@@ -316,6 +374,14 @@ public class OSDriver
 
     public void setNotDone(boolean notDone) {
         this.notDone = notDone;
+    }
+
+    public Integer getNumOfPrograms() {
+        return numOfPrograms;
+    }
+
+    public void setNumOfPrograms(Integer numOfPrograms) {
+        this.numOfPrograms = numOfPrograms;
     }
 
     /**

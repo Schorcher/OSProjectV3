@@ -159,6 +159,11 @@ public class ProcessControlBlock
         return priority;
     }
 
+    public Integer getPriorityInInteger()
+    {
+        return util.parseHexToDecimal(priority);
+    }
+
     public void setPriority(String priority) {
         this.priority = priority;
     }
@@ -177,6 +182,11 @@ public class ProcessControlBlock
 
     public void setStatusInfo(String statusInfo) {
         this.statusInfo = statusInfo;
+    }
+
+    public Integer getJobSize()
+    {
+        return util.parseHexToDecimal(instructionCount);
     }
 
     public String getInstructionCount() {
@@ -275,4 +285,5 @@ public class ProcessControlBlock
     {
         return pageList;
     }
+
 }
